@@ -1,7 +1,6 @@
 
 
 
-#include <FishFeeder.h>
 #include <Servo.h>
 
 #include <StandardCplusplus.h>
@@ -9,29 +8,26 @@
 
 using namespace std;
 
+#include <FishFeeder.h>
 #include <SerialExt.h>
-#include <Motor.h>
-//#include "FishFeeder.h"
+#include <ServoMotor.h>
 using namespace Utils;
 
-
-//Utils _utils;
-//Motor _motor;
 
 //---Feeders---
 
 long _secondFeeding = 16; //** make second feeding like 16 hours to only feed when lights come on
 vector<FishFeeder> _feeders;
 int _statringFeederPin = 7;
-//int _feederPwrSigPin = 8; //relay signal pin.
-int _potShakesPin = 0; //A0
+int _feederPwrSigPin = 12; //relay signal pin.
+uint8_t _potShakesPin = A0; //A0
 int _numberOfFeeders = 4;
 
 
 //---End Feeders---
 
 void setup() {
-	//pinMode(_feederPwrSigPin, OUTPUT); //to send relay signal
+	pinMode(_feederPwrSigPin, OUTPUT); //to send relay signal
 	// initialize serial:
 	Serial.begin(9600);
 	//Wait for four seconds or till data is available on serial, whichever occurs first.
@@ -39,6 +35,7 @@ void setup() {
 	//while (!Serial); // Wait until Serial is ready - Leonardo
 	Serial.println("Press - 1 to run, 2 to go back and forth..");
 
+	//FishFeeder::FeederPwrSigPin = _feederPwrSigPin;
 	_feeders = FishFeeder::CreateFeeders(_numberOfFeeders, _statringFeederPin);//number of feeders, start pin
 }
 
@@ -50,15 +47,17 @@ void loop() {
 		incomingByte = 49; //on input so run.
 	}
 	//_utils.Debug("incomingByte: ", incomingByte);
-	bool runMotor = Motor::ShouldRunMotor(incomingByte);
-	bool runMotorDemo = Motor::ShouldRunMotorDemo(incomingByte);
+	bool runMotor = ServoMotor::ShouldRunMotor(incomingByte);
+	bool runMotorDemo = ServoMotor::ShouldRunMotorDemo(incomingByte);
 
 	if (runMotor) {
-		//digitalWrite(_feederPwrSigPin,LOW); //to send relay signal
-		int potVal = analogRead(_potShakesPin); // reads the value of the potentiometer (value between 0 and 1023)
+		SerialExt::Print("Signaling Relay ON, pin: ", _feederPwrSigPin);
+		digitalWrite(_feederPwrSigPin,LOW); //to send relay signal
+		int potVal = analogRead(A0); // reads the value of the potentiometer (value between 0 and 1023)
 		SerialExt::Print("Pot Val: ", potVal);
 		FishFeeder::FeedAll(_feeders, potVal);
-		//digitalWrite(_feederPwrSigPin,HIGH);
+		SerialExt::Print("Signaling Relay OFF, pin: ", _feederPwrSigPin);
+		digitalWrite(_feederPwrSigPin,HIGH);
 	}
 	else if (runMotorDemo)
 	{
